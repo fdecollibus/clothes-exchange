@@ -27,7 +27,6 @@ export function Dashboard() {
   const availableItems = userItems.filter(item => item.status === 'available')
   const soldItems = userItems.filter(item => item.status === 'sold')
   const totalValue = userItems.reduce((sum, item) => sum + item.price, 0)
-  const soldValue = soldItems.reduce((sum, item) => sum + item.price, 0)
 
   const stats = [
     {
