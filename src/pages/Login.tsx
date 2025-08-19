@@ -1,34 +1,30 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { Link, useNavigate } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { useAuthStore } from '../stores/authStore'
-import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
-
-interface LoginForm {
-  email: string
-  password: string
-}
 
 export function Login() {
   const navigate = useNavigate()
   const { login, isLoading } = useAuthStore()
+  const [email, setEmail] = React.useState('')
+  const [password, setPassword] = React.useState('')
   const [showPassword, setShowPassword] = React.useState(false)
   const [error, setError] = React.useState('')
 
-  const {
-    register: registerField,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginForm>()
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!email || !password) {
+      setError('Bitte füllen Sie alle Felder aus')
+      return
+    }
 
-  const onSubmit = async (data: LoginForm) => {
     try {
       setError('')
-      await login(data.email, data.password)
+      await login(email, password)
       navigate('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ungültige Anmeldedaten. Bitte versuchen Sie es erneut.')
@@ -56,7 +52,7 @@ export function Login() {
         </div>
 
         <Card className="p-8">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
@@ -67,43 +63,45 @@ export function Login() {
               </motion.div>
             )}
 
-            <Input
-              label="E-Mail-Adresse"
-              type="email"
-              {...registerField('email', {
-                required: 'E-Mail ist erforderlich',
-                pattern: {
-                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: 'Ungültige E-Mail-Adresse',
-                },
-              })}
-              error={errors.email?.message}
-            />
-
-            <div className="relative">
-              <Input
-                label="Passwort"
-                type={showPassword ? 'text' : 'password'}
-                {...registerField('password', {
-                  required: 'Passwort ist erforderlich',
-                  minLength: {
-                    value: 6,
-                    message: 'Passwort muss mindestens 6 Zeichen lang sein',
-                  },
-                })}
-                error={errors.password?.message}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                E-Mail-Adresse
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 transition-colors duration-200 px-4 py-3"
+                placeholder="ihre@email.de"
+                required
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-9 text-gray-400 hover:text-gray-600"
-              >
-                {showPassword ? (
-                  <EyeSlashIcon className="h-5 w-5" />
-                ) : (
-                  <EyeIcon className="h-5 w-5" />
-                )}
-              </button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Passwort
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 transition-colors duration-200 px-4 py-3 pr-12"
+                  placeholder="Ihr Passwort"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? (
+                    <EyeSlashIcon className="h-5 w-5" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <Button type="submit" isLoading={isLoading} className="w-full">
