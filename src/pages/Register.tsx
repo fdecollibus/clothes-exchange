@@ -17,12 +17,12 @@ interface RegisterForm {
 
 export function Register() {
   const navigate = useNavigate()
-  const { register: registerUser, isLoading } = useAuthStore()
+  const { register: authRegister, isLoading } = useAuthStore()
   const [showPassword, setShowPassword] = React.useState(false)
   const [error, setError] = React.useState('')
 
   const {
-    register,
+    register: registerField,
     handleSubmit,
     watch,
     formState: { errors },
@@ -33,7 +33,7 @@ export function Register() {
   const onSubmit = async (data: RegisterForm) => {
     try {
       setError('')
-      await registerUser(data.name, data.email, data.password)
+      await authRegister(data.name, data.email, data.password)
       navigate('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.')
@@ -74,7 +74,7 @@ export function Register() {
 
             <Input
               label="Vollständiger Name"
-              {...register('name', {
+              {...registerField('name', {
                 required: 'Name ist erforderlich',
                 minLength: {
                   value: 2,
@@ -87,7 +87,7 @@ export function Register() {
             <Input
               label="E-Mail-Adresse"
               type="email"
-              {...register('email', {
+              {...registerField('email', {
                 required: 'E-Mail ist erforderlich',
                 pattern: {
                   value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
@@ -101,7 +101,7 @@ export function Register() {
               <Input
                 label="Passwort"
                 type={showPassword ? 'text' : 'password'}
-                {...register('password', {
+                {...registerField('password', {
                   required: 'Passwort ist erforderlich',
                   minLength: {
                     value: 6,
@@ -126,7 +126,7 @@ export function Register() {
             <Input
               label="Passwort bestätigen"
               type="password"
-              {...register('confirmPassword', {
+              {...registerField('confirmPassword', {
                 required: 'Passwort-Bestätigung ist erforderlich',
                 validate: (value) =>
                   value === password || 'Passwörter stimmen nicht überein',

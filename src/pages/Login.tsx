@@ -20,7 +20,7 @@ export function Login() {
   const [error, setError] = React.useState('')
 
   const {
-    register,
+    register: registerField,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginForm>()
@@ -70,7 +70,7 @@ export function Login() {
             <Input
               label="E-Mail-Adresse"
               type="email"
-              {...register('email', {
+              {...registerField('email', {
                 required: 'E-Mail ist erforderlich',
                 pattern: {
                   value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
@@ -84,7 +84,7 @@ export function Login() {
               <Input
                 label="Passwort"
                 type={showPassword ? 'text' : 'password'}
-                {...register('password', {
+                {...registerField('password', {
                   required: 'Passwort ist erforderlich',
                   minLength: {
                     value: 6,
