@@ -31,7 +31,7 @@ export function Login() {
       await login(data.email, data.password)
       navigate('/')
     } catch (err) {
-      setError('Ungültige Anmeldedaten. Bitte versuchen Sie es erneut.')
+      setError(err instanceof Error ? err.message : 'Ungültige Anmeldedaten. Bitte versuchen Sie es erneut.')
     }
   }
 

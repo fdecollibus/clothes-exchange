@@ -36,7 +36,7 @@ export function Register() {
       await registerUser(data.name, data.email, data.password)
       navigate('/')
     } catch (err) {
-      setError('Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.')
+      setError(err instanceof Error ? err.message : 'Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.')
     }
   }
 
