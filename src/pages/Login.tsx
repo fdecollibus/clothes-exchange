@@ -123,8 +123,8 @@ export function Login() {
           <div className="mt-4 p-4 bg-gray-50 rounded-xl">
             <p className="text-sm text-gray-600 mb-2">Demo-Anmeldedaten:</p>
             <p className="text-xs text-gray-500">
-              <strong>Admin:</strong> admin@example.com / password<br />
-              <strong>Verkäufer:</strong> maria@example.com / password
+              <strong>Admin:</strong> admin@example.com / password123<br />
+              <strong>Verkäufer:</strong> maria@example.com / password123
             </p>
           </div>
         </Card>

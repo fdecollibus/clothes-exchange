@@ -49,7 +49,7 @@ export const useAuthStore = create<AuthState>()(
         await new Promise(resolve => setTimeout(resolve, 1000))
         
         const user = mockUsers.find(u => u.email === email)
-        if (user && password === 'password') {
+        if (user && password === 'password123') {
           set({ user, isAuthenticated: true, isLoading: false })
         } else {
           set({ isLoading: false })
