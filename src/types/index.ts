@@ -54,3 +54,16 @@ export interface Sale {
 
 export type ViewMode = 'grid' | 'list'
 export type SortOption = 'newest' | 'oldest' | 'price-low' | 'price-high' | 'name'
+
+export interface ApiResponse<T = any> {
+  data: T
+  message?: string
+  success?: boolean
+}
+
+export interface PaginatedResponse<T = any> {
+  data: T[]
+  total: number
+  page: number
+  limit: number
+}
