@@ -68,7 +68,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      register: async (name: string, email: string, password: string) => {
+      register: async (name: string, email: string, _password: string) => {
         set({ isLoading: true })
         
         try {
