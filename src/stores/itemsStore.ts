@@ -15,7 +15,7 @@ interface ItemsState {
   // Actions
   fetchItems: () => Promise<void>
   fetchSellers: () => Promise<void>
-  addItem: (item: Omit<Item, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>
+  addItem: (item: Omit<Item, 'id' | 'createdAt' | 'updatedAt' | 'itemNumber'>) => Promise<void>
   updateItem: (id: string, updates: Partial<Item>) => Promise<void>
   deleteItem: (id: string) => Promise<void>
   addToCart: (item: Item) => void
