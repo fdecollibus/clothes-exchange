@@ -2,34 +2,36 @@ import React from 'react'
 import { useForm } from 'react-hook-form'
 import { PhotoIcon } from '@heroicons/react/24/outline'
 import type { Item } from '../../types'
-import Input from '../ui/Input'
-import Button from '../ui/Button'
-import Card from '../ui/Card'
+import { Input } from '../ui/Input'
+import { Button } from '../ui/Button'
+import { useItemsStore } from '../../stores/itemsStore'
+import { useAuthStore } from '../../stores/authStore'
 
-interface ItemFormData {
+interface ItemFormProps {
+  item?: Item
+  onSuccess?: () => void
+}
+
+interface FormData {
   title: string
   description: string
   price: number
   size: string
-  condition: string
-  category: string
-  image?: FileList
+  condition: 'new' | 'very_good' | 'good' | 'acceptable'
+  category: 'clothing' | 'shoes' | 'toys' | 'accessories'
 }
 
-interface ItemFormProps {
-  item?: Item
-  onSubmit: (data: FormData) => Promise<void>
-  onCancel: () => void
-  isLoading?: boolean
-}
+export function ItemForm({ item, onSuccess }: ItemFormProps) {
+  const { addItem, updateItem, isLoading } = useItemsStore()
+  const { user } = useAuthStore()
+  const [imagePreview, setImagePreview] = React.useState<string>('')
 
-const ItemForm: React.FC<ItemFormProps> = ({ item, onSubmit, onCancel, isLoading }) => {
   const {
     register,
     handleSubmit,
     formState: { errors },
-    watch,
-  } = useForm<ItemFormData>({
+    reset,
+  } = useForm<FormData>({
     defaultValues: item ? {
       title: item.title,
       description: item.description,
@@ -40,167 +42,176 @@ const ItemForm: React.FC<ItemFormProps> = ({ item, onSubmit, onCancel, isLoading
     } : undefined,
   })
 
-  const watchedImage = watch('image')
-  const imagePreview = watchedImage?.[0] ? URL.createObjectURL(watchedImage[0]) : null
+  const onSubmit = async (data: FormData) => {
+    if (!user) return
 
-  const handleFormSubmit = async (data: ItemFormData) => {
-    const formData = new FormData()
-    formData.append('title', data.title)
-    formData.append('description', data.description)
-    formData.append('price', data.price.toString())
-    formData.append('size', data.size)
-    formData.append('condition', data.condition)
-    formData.append('category', data.category)
-    
-    if (data.image?.[0]) {
-      formData.append('image', data.image[0])
+    try {
+      if (item) {
+        await updateItem(item.id, data)
+      } else {
+        await addItem({
+          ...data,
+          sellerId: user.id,
+          status: 'available',
+        })
+      }
+      reset()
+      setImagePreview('')
+      onSuccess?.()
+    } catch (error) {
+      console.error('Error saving item:', error)
     }
+  }
 
-    await onSubmit(formData)
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
   }
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <div className="p-6">
-        <h2 className="text-2xl font-bold text-slate-900 mb-6">
-          {item ? 'Edit Item' : 'Add New Item'}
-        </h2>
-
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4">
           <Input
-            label="Title"
-            {...register('title', { required: 'Title is required' })}
+            label="Titel"
+            {...register('title', { required: 'Titel ist erforderlich' })}
             error={errors.title?.message}
-            placeholder="e.g., Blue Summer Dress"
           />
 
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-700">
-              Description
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Beschreibung
             </label>
             <textarea
-              {...register('description', { required: 'Description is required' })}
-              rows={3}
-              className="input-field resize-none"
-              placeholder="Describe the item in detail..."
+              {...register('description', { required: 'Beschreibung ist erforderlich' })}
+              rows={4}
+              className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
             />
             {errors.description && (
-              <p className="text-sm text-error-600">{errors.description.message}</p>
+              <p className="text-sm text-red-600 mt-1">{errors.description.message}</p>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Price (CHF)"
+              label="Preis (CHF)"
               type="number"
               step="0.50"
               min="0.50"
               {...register('price', { 
-                required: 'Price is required',
-                min: { value: 0.5, message: 'Minimum price is 0.50 CHF' }
+                required: 'Preis ist erforderlich',
+                min: { value: 0.5, message: 'Mindestpreis ist 0.50 CHF' }
               })}
               error={errors.price?.message}
-              placeholder="10.00"
             />
 
             <Input
-              label="Size"
-              {...register('size', { required: 'Size is required' })}
+              label="Größe"
+              {...register('size', { required: 'Größe ist erforderlich' })}
               error={errors.size?.message}
-              placeholder="e.g., 104, M, 38"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700">
-                Condition
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Zustand
               </label>
               <select
-                {...register('condition', { required: 'Condition is required' })}
-                className="input-field"
+                {...register('condition', { required: 'Zustand ist erforderlich' })}
+                className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               >
-                <option value="">Select condition</option>
-                <option value="new">New</option>
-                <option value="very_good">Very Good</option>
-                <option value="good">Good</option>
-                <option value="acceptable">Acceptable</option>
+                <option value="">Auswählen...</option>
+                <option value="new">Neu</option>
+                <option value="very_good">Sehr gut</option>
+                <option value="good">Gut</option>
+                <option value="acceptable">Akzeptabel</option>
               </select>
               {errors.condition && (
-                <p className="text-sm text-error-600">{errors.condition.message}</p>
+                <p className="text-sm text-red-600 mt-1">{errors.condition.message}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700">
-                Category
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Kategorie
               </label>
               <select
-                {...register('category', { required: 'Category is required' })}
-                className="input-field"
+                {...register('category', { required: 'Kategorie ist erforderlich' })}
+                className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               >
-                <option value="">Select category</option>
-                <option value="clothing">Clothing</option>
-                <option value="shoes">Shoes</option>
-                <option value="toys">Toys</option>
-                <option value="accessories">Accessories</option>
+                <option value="">Auswählen...</option>
+                <option value="clothing">Kleidung</option>
+                <option value="shoes">Schuhe</option>
+                <option value="toys">Spielzeug</option>
+                <option value="accessories">Accessoires</option>
               </select>
               {errors.category && (
-                <p className="text-sm text-error-600">{errors.category.message}</p>
+                <p className="text-sm text-red-600 mt-1">{errors.category.message}</p>
               )}
             </div>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-700">
-              Image (Optional)
-            </label>
-            <div className="flex justify-center rounded-xl border-2 border-dashed border-slate-300 px-6 py-10 hover:border-primary-400 transition-colors duration-200">
-              <div className="text-center">
-                {imagePreview ? (
-                  <div className="mb-4">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="mx-auto h-32 w-32 object-cover rounded-lg"
-                    />
-                  </div>
-                ) : (
-                  <PhotoIcon className="mx-auto h-12 w-12 text-slate-400" />
-                )}
-                <div className="mt-4 flex text-sm leading-6 text-slate-600">
-                  <label
-                    htmlFor="image-upload"
-                    className="relative cursor-pointer rounded-md bg-white font-semibold text-primary-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-primary-600 focus-within:ring-offset-2 hover:text-primary-500"
-                  >
-                    <span>Upload a file</span>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Foto (optional)
+          </label>
+          <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-primary-400 transition-colors">
+            {imagePreview ? (
+              <div className="space-y-4">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="mx-auto h-32 w-32 object-cover rounded-lg"
+                />
+                <button
+                  type="button"
+                  onClick={() => setImagePreview('')}
+                  className="text-sm text-red-600 hover:text-red-800"
+                >
+                  Foto entfernen
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <PhotoIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <div>
+                  <label className="cursor-pointer">
+                    <span className="text-primary-600 hover:text-primary-500 font-medium">
+                      Foto hochladen
+                    </span>
                     <input
-                      id="image-upload"
                       type="file"
                       accept="image/*"
+                      onChange={handleImageChange}
                       className="sr-only"
-                      {...register('image')}
                     />
                   </label>
-                  <p className="pl-1">or drag and drop</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    PNG, JPG, GIF bis 5MB
+                  </p>
                 </div>
-                <p className="text-xs leading-5 text-slate-600">PNG, JPG, GIF up to 5MB</p>
               </div>
-            </div>
+            )}
           </div>
-
-          <div className="flex justify-end space-x-4 pt-6 border-t border-slate-200">
-            <Button variant="secondary" onClick={onCancel} type="button">
-              Cancel
-            </Button>
-            <Button type="submit" isLoading={isLoading}>
-              {item ? 'Update Item' : 'Create Item'}
-            </Button>
-          </div>
-        </form>
+        </div>
       </div>
-    </Card>
+
+      <div className="flex justify-end space-x-4">
+        <Button type="button" variant="outline" onClick={() => reset()}>
+          Zurücksetzen
+        </Button>
+        <Button type="submit" isLoading={isLoading}>
+          {item ? 'Artikel aktualisieren' : 'Artikel hinzufügen'}
+        </Button>
+      </div>
+    </form>
   )
 }
-
-export default ItemForm

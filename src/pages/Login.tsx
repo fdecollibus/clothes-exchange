@@ -1,89 +1,102 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React from 'react'
 import { motion } from 'framer-motion'
+import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { EyeIcon, EyeSlashIcon, SparklesIcon } from '@heroicons/react/24/outline'
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { useAuthStore } from '../stores/authStore'
-import Button from '../components/ui/Button'
-import Input from '../components/ui/Input'
-import Card from '../components/ui/Card'
+import { Input } from '../components/ui/Input'
+import { Button } from '../components/ui/Button'
+import { Card } from '../components/ui/Card'
 
-interface LoginFormData {
+interface LoginForm {
   email: string
   password: string
 }
 
-const Login: React.FC = () => {
+export function Login() {
   const navigate = useNavigate()
   const { login, isLoading } = useAuthStore()
-  const [showPassword, setShowPassword] = useState(false)
-  
+  const [showPassword, setShowPassword] = React.useState(false)
+  const [error, setError] = React.useState('')
+
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormData>()
+  } = useForm<LoginForm>()
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onSubmit = async (data: LoginForm) => {
     try {
+      setError('')
       await login(data.email, data.password)
-      navigate('/dashboard')
-    } catch (error) {
-      // Error is handled by the store and toast
+      navigate('/')
+    } catch (err) {
+      setError('Ungültige Anmeldedaten. Bitte versuchen Sie es erneut.')
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
-        >
-          <div className="flex justify-center mb-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-r from-primary-500 to-secondary-500 shadow-lg shadow-primary-500/25">
-              <SparklesIcon className="h-8 w-8 text-white" />
-            </div>
-          </div>
-          <h1 className="text-3xl font-bold gradient-text mb-2">Welcome Back</h1>
-          <p className="text-slate-600">Sign in to your Clothes Exchange account</p>
-        </motion.div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 px-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md"
+      >
+        <div className="text-center mb-8">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="w-16 h-16 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-2xl flex items-center justify-center mx-auto mb-4"
+          >
+            <span className="text-white font-bold text-2xl">KC</span>
+          </motion.div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Willkommen zurück</h1>
+          <p className="text-gray-600">Melden Sie sich in Ihrem Konto an</p>
+        </div>
 
-        <Card glass className="p-8">
+        <Card className="p-8">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl"
+              >
+                {error}
+              </motion.div>
+            )}
+
             <Input
-              label="Email"
+              label="E-Mail-Adresse"
               type="email"
               {...register('email', {
-                required: 'Email is required',
+                required: 'E-Mail ist erforderlich',
                 pattern: {
                   value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: 'Invalid email address',
+                  message: 'Ungültige E-Mail-Adresse',
                 },
               })}
               error={errors.email?.message}
-              placeholder="your@email.com"
             />
 
             <div className="relative">
               <Input
-                label="Password"
+                label="Passwort"
                 type={showPassword ? 'text' : 'password'}
                 {...register('password', {
-                  required: 'Password is required',
+                  required: 'Passwort ist erforderlich',
                   minLength: {
                     value: 6,
-                    message: 'Password must be at least 6 characters',
+                    message: 'Passwort muss mindestens 6 Zeichen lang sein',
                   },
                 })}
                 error={errors.password?.message}
-                placeholder="Enter your password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-9 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-9 text-gray-400 hover:text-gray-600"
               >
                 {showPassword ? (
                   <EyeSlashIcon className="h-5 w-5" />
@@ -93,26 +106,29 @@ const Login: React.FC = () => {
               </button>
             </div>
 
-            <Button type="submit" className="w-full" isLoading={isLoading}>
-              Sign In
+            <Button type="submit" isLoading={isLoading} className="w-full">
+              Anmelden
             </Button>
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-slate-600">
-              Don't have an account?{' '}
-              <Link
-                to="/register"
-                className="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200"
-              >
-                Sign up
+            <p className="text-gray-600">
+              Noch kein Konto?{' '}
+              <Link to="/register" className="text-primary-600 hover:text-primary-500 font-medium">
+                Jetzt registrieren
               </Link>
             </p>
           </div>
+
+          <div className="mt-4 p-4 bg-gray-50 rounded-xl">
+            <p className="text-sm text-gray-600 mb-2">Demo-Anmeldedaten:</p>
+            <p className="text-xs text-gray-500">
+              <strong>Admin:</strong> admin@example.com / password<br />
+              <strong>Verkäufer:</strong> maria@example.com / password
+            </p>
+          </div>
         </Card>
-      </div>
+      </motion.div>
     </div>
   )
 }
-
-export default Login

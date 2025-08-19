@@ -1,99 +1,97 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { authApi } from '../lib/api'
 import type { User } from '../types'
-import toast from 'react-hot-toast'
 
 interface AuthState {
   user: User | null
-  token: string | null
   isAuthenticated: boolean
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
   logout: () => void
-  loadUser: () => Promise<void>
   updateProfile: (data: Partial<User>) => Promise<void>
 }
+
+// Mock data for demo
+const mockUsers: User[] = [
+  {
+    id: '1',
+    name: 'Admin User',
+    email: 'admin@example.com',
+    isAdmin: true,
+    role: 'admin',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    name: 'Maria Müller',
+    email: 'maria@example.com',
+    sellerNumber: 'S001',
+    street: 'Bahnhofstrasse 123',
+    city: '8001 Zürich',
+    iban: 'CH93 0076 2011 6238 5295 7',
+    role: 'seller',
+    createdAt: new Date().toISOString(),
+  },
+]
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
-      token: null,
       isAuthenticated: false,
       isLoading: false,
 
       login: async (email: string, password: string) => {
         set({ isLoading: true })
-        try {
-          const response = await authApi.login(email, password)
-          const { user, token } = response.data.data
-          
-          localStorage.setItem('auth-token', token)
-          set({ user, token, isAuthenticated: true, isLoading: false })
-          toast.success(`Welcome back, ${user.name}!`)
-        } catch (error: any) {
+        
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        const user = mockUsers.find(u => u.email === email)
+        if (user && password === 'password') {
+          set({ user, isAuthenticated: true, isLoading: false })
+        } else {
           set({ isLoading: false })
-          toast.error(error.response?.data?.message || 'Login failed')
-          throw error
+          throw new Error('Invalid credentials')
         }
       },
 
       register: async (name: string, email: string, password: string) => {
         set({ isLoading: true })
-        try {
-          const response = await authApi.register({ name, email, password })
-          const { user, token } = response.data.data
-          
-          localStorage.setItem('auth-token', token)
-          set({ user, token, isAuthenticated: true, isLoading: false })
-          toast.success(`Welcome to Clothes Exchange, ${user.name}!`)
-        } catch (error: any) {
-          set({ isLoading: false })
-          toast.error(error.response?.data?.message || 'Registration failed')
-          throw error
+        
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        const newUser: User = {
+          id: Date.now().toString(),
+          name,
+          email,
+          role: 'seller',
+          createdAt: new Date().toISOString(),
         }
+        
+        mockUsers.push(newUser)
+        set({ user: newUser, isAuthenticated: true, isLoading: false })
       },
 
       logout: () => {
-        localStorage.removeItem('auth-token')
-        set({ user: null, token: null, isAuthenticated: false })
-        toast.success('Logged out successfully')
-      },
-
-      loadUser: async () => {
-        const token = localStorage.getItem('auth-token')
-        if (!token) return
-
-        set({ isLoading: true })
-        try {
-          const response = await authApi.me()
-          set({ user: response.data.data, token, isAuthenticated: true, isLoading: false })
-        } catch (error) {
-          localStorage.removeItem('auth-token')
-          set({ user: null, token: null, isAuthenticated: false, isLoading: false })
-        }
+        set({ user: null, isAuthenticated: false })
       },
 
       updateProfile: async (data: Partial<User>) => {
-        try {
-          const response = await authApi.updateProfile(data)
-          set({ user: response.data.data })
-          toast.success('Profile updated successfully')
-        } catch (error: any) {
-          toast.error(error.response?.data?.message || 'Failed to update profile')
-          throw error
-        }
+        const { user } = get()
+        if (!user) throw new Error('Not authenticated')
+        
+        set({ isLoading: true })
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        const updatedUser = { ...user, ...data }
+        set({ user: updatedUser, isLoading: false })
       },
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({ 
-        user: state.user, 
-        token: state.token, 
-        isAuthenticated: state.isAuthenticated 
-      }),
     }
   )
 )

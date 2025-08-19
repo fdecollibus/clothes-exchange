@@ -6,22 +6,20 @@ interface LoadingSpinnerProps {
   className?: string
 }
 
-const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = 'md', className = '' }) => {
+export function LoadingSpinner({ size = 'md', className = '' }: LoadingSpinnerProps) {
   const sizes = {
-    sm: 'w-4 h-4',
-    md: 'w-8 h-8',
-    lg: 'w-12 h-12',
+    sm: 'h-4 w-4',
+    md: 'h-8 w-8',
+    lg: 'h-12 w-12',
   }
 
   return (
     <div className={`flex items-center justify-center ${className}`}>
       <motion.div
-        className={`${sizes[size]} border-2 border-primary-200 border-t-primary-600 rounded-full`}
         animate={{ rotate: 360 }}
         transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+        className={`${sizes[size]} border-2 border-primary-200 border-t-primary-500 rounded-full`}
       />
     </div>
   )
 }
-
-export default LoadingSpinner

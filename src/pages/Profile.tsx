@@ -1,13 +1,19 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
-import { UserCircleIcon } from '@heroicons/react/24/outline'
+import { 
+  UserIcon, 
+  EnvelopeIcon, 
+  MapPinIcon, 
+  CreditCardIcon,
+  CheckCircleIcon 
+} from '@heroicons/react/24/outline'
 import { useAuthStore } from '../stores/authStore'
-import Button from '../components/ui/Button'
-import Input from '../components/ui/Input'
-import Card from '../components/ui/Card'
+import { Input } from '../components/ui/Input'
+import { Button } from '../components/ui/Button'
+import { Card } from '../components/ui/Card'
 
-interface ProfileFormData {
+interface ProfileForm {
   name: string
   email: string
   street: string
@@ -15,14 +21,15 @@ interface ProfileFormData {
   iban: string
 }
 
-const Profile: React.FC = () => {
-  const { user, updateProfile } = useAuthStore()
-  
+export function Profile() {
+  const { user, updateProfile, isLoading } = useAuthStore()
+  const [success, setSuccess] = React.useState(false)
+
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<ProfileFormData>({
+    formState: { errors },
+  } = useForm<ProfileForm>({
     defaultValues: {
       name: user?.name || '',
       email: user?.email || '',
@@ -32,53 +39,65 @@ const Profile: React.FC = () => {
     },
   })
 
-  const onSubmit = async (data: ProfileFormData) => {
+  const onSubmit = async (data: ProfileForm) => {
     try {
       await updateProfile(data)
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
     } catch (error) {
-      // Error is handled by the store and toast
+      console.error('Error updating profile:', error)
     }
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto space-y-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-8"
+        className="text-center"
       >
-        <div className="flex justify-center mb-4">
-          <div className="h-20 w-20 rounded-full bg-gradient-to-r from-primary-500 to-secondary-500 flex items-center justify-center">
-            <UserCircleIcon className="h-12 w-12 text-white" />
-          </div>
-        </div>
-        <h1 className="text-3xl font-bold gradient-text mb-2">Profile Settings</h1>
-        <p className="text-slate-600">Manage your account information</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">Profil bearbeiten</h1>
+        <p className="text-gray-600">
+          Verwalten Sie Ihre persönlichen Informationen und Verkäuferdetails
+        </p>
       </motion.div>
 
-      <Card glass className="p-8">
+      <Card className="p-8">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {success && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl flex items-center"
+            >
+              <CheckCircleIcon className="h-5 w-5 mr-2" />
+              Profil erfolgreich aktualisiert!
+            </motion.div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input
-              label="Full Name"
+              label="Vollständiger Name"
+              icon={<UserIcon className="h-5 w-5 text-gray-400" />}
               {...register('name', {
-                required: 'Name is required',
+                required: 'Name ist erforderlich',
                 minLength: {
                   value: 2,
-                  message: 'Name must be at least 2 characters',
+                  message: 'Name muss mindestens 2 Zeichen lang sein',
                 },
               })}
               error={errors.name?.message}
             />
 
             <Input
-              label="Email"
+              label="E-Mail-Adresse"
               type="email"
+              icon={<EnvelopeIcon className="h-5 w-5 text-gray-400" />}
               {...register('email', {
-                required: 'Email is required',
+                required: 'E-Mail ist erforderlich',
                 pattern: {
                   value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: 'Invalid email address',
+                  message: 'Ungültige E-Mail-Adresse',
                 },
               })}
               error={errors.email?.message}
@@ -86,42 +105,52 @@ const Profile: React.FC = () => {
           </div>
 
           <Input
-            label="Street Address"
+            label="Straße und Hausnummer"
+            icon={<MapPinIcon className="h-5 w-5 text-gray-400" />}
             {...register('street')}
-            placeholder="123 Main Street"
+            error={errors.street?.message}
           />
 
           <Input
-            label="City"
+            label="Stadt und Postleitzahl"
+            icon={<MapPinIcon className="h-5 w-5 text-gray-400" />}
             {...register('city')}
-            placeholder="Zurich"
+            error={errors.city?.message}
           />
 
           <Input
-            label="IBAN"
+            label="IBAN (für Auszahlungen)"
+            icon={<CreditCardIcon className="h-5 w-5 text-gray-400" />}
+            placeholder="CH93 0076 2011 6238 5295 7"
             {...register('iban', {
               pattern: {
                 value: /^[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7}([A-Z0-9]?){0,16}$/,
-                message: 'Invalid IBAN format',
+                message: 'Ungültiges IBAN-Format',
               },
             })}
             error={errors.iban?.message}
-            placeholder="CH93 0076 2011 6238 5295 7"
           />
 
           {user?.sellerNumber && (
-            <div className="p-4 bg-primary-50 rounded-xl border border-primary-200">
-              <p className="text-sm font-medium text-primary-900 mb-1">Seller Number</p>
-              <p className="text-lg font-bold text-primary-600">#{user.sellerNumber}</p>
-              <p className="text-xs text-primary-700 mt-1">
-                This is your unique seller identifier
+            <div className="bg-gray-50 p-4 rounded-xl">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Verkäufernummer
+              </label>
+              <div className="text-lg font-semibold text-primary-600">
+                {user.sellerNumber}
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
+                Ihre eindeutige Verkäufernummer für die Kinderkleiderbörse
               </p>
             </div>
           )}
 
-          <div className="flex justify-end pt-6 border-t border-slate-200">
-            <Button type="submit" isLoading={isSubmitting}>
-              Update Profile
+          <div className="flex justify-end space-x-4">
+            <Button type="button" variant="outline">
+              Abbrechen
+            </Button>
+            <Button type="submit" isLoading={isLoading}>
+              Profil speichern
             </Button>
           </div>
         </form>
@@ -129,5 +158,3 @@ const Profile: React.FC = () => {
     </div>
   )
 }
-
-export default Profile

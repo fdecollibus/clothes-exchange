@@ -6,24 +6,21 @@ interface CardProps {
   children: React.ReactNode
   className?: string
   hover?: boolean
-  glass?: boolean
 }
 
-const Card: React.FC<CardProps> = ({ children, className, hover = false, glass = false }) => {
-  const baseClasses = 'rounded-2xl border border-slate-200 shadow-lg'
-  const glassClasses = glass ? 'glass-card' : 'bg-white'
-  const hoverClasses = hover ? 'card-hover' : ''
-
+export function Card({ children, className, hover = false }: CardProps) {
   return (
     <motion.div
-      className={cn(baseClasses, glassClasses, hoverClasses, className)}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      whileHover={hover ? { y: -4, scale: 1.02 } : undefined}
+      className={cn(
+        'bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden',
+        hover && 'transition-all duration-300 hover:shadow-xl',
+        className
+      )}
     >
       {children}
     </motion.div>
   )
 }
-
-export default Card

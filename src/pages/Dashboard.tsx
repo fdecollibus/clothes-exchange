@@ -1,104 +1,64 @@
-import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React from 'react'
 import { motion } from 'framer-motion'
-import {
-  PlusIcon,
-  ArrowDownTrayIcon,
-  TagIcon,
-  ChartBarIcon,
-  ShoppingBagIcon,
+import { Link } from 'react-router-dom'
+import { 
+  PlusIcon, 
+  ShoppingBagIcon, 
   CurrencyDollarIcon,
+  ChartBarIcon,
+  TrophyIcon 
 } from '@heroicons/react/24/outline'
-import { useItemsStore } from '../stores/itemsStore'
 import { useAuthStore } from '../stores/authStore'
-import { formatCurrency } from '../lib/utils'
-import Button from '../components/ui/Button'
-import Card from '../components/ui/Card'
-import LoadingSpinner from '../components/ui/LoadingSpinner'
-import ItemCard from '../components/items/ItemCard'
-import Modal from '../components/ui/Modal'
-import ItemForm from '../components/items/ItemForm'
-import type { Item } from '../types'
+import { useItemsStore } from '../stores/itemsStore'
+import { formatPrice } from '../lib/utils'
+import { Card } from '../components/ui/Card'
+import { Button } from '../components/ui/Button'
+import { ItemCard } from '../components/items/ItemCard'
 
-const Dashboard: React.FC = () => {
-  const navigate = useNavigate()
+export function Dashboard() {
   const { user } = useAuthStore()
-  const { 
-    items, 
-    isLoading, 
-    loadItems, 
-    createItem, 
-    updateItem, 
-    deleteItem, 
-    duplicateItem,
-    downloadList,
-    downloadLabels 
-  } = useItemsStore()
+  const { items, fetchItems } = useItemsStore()
 
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<Item | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  React.useEffect(() => {
+    fetchItems()
+  }, [fetchItems])
 
-  useEffect(() => {
-    loadItems()
-  }, [loadItems])
+  const userItems = items.filter(item => item.sellerId === user?.id)
+  const availableItems = userItems.filter(item => item.status === 'available')
+  const soldItems = userItems.filter(item => item.status === 'sold')
+  const totalValue = userItems.reduce((sum, item) => sum + item.price, 0)
+  const soldValue = soldItems.reduce((sum, item) => sum + item.price, 0)
 
-  const stats = {
-    total: items.length,
-    available: items.filter(item => item.status === 'available').length,
-    sold: items.filter(item => item.status === 'sold').length,
-    totalValue: items.reduce((sum, item) => sum + item.price, 0),
-    soldValue: items.filter(item => item.status === 'sold').reduce((sum, item) => sum + item.price, 0),
-  }
-
-  const handleCreateItem = async (data: FormData) => {
-    setIsSubmitting(true)
-    try {
-      await createItem(data)
-      setIsCreateModalOpen(false)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleUpdateItem = async (data: FormData) => {
-    if (!editingItem) return
-    
-    setIsSubmitting(true)
-    try {
-      const updateData: Partial<Item> = {
-        title: data.get('title') as string,
-        description: data.get('description') as string,
-        price: parseFloat(data.get('price') as string),
-        size: data.get('size') as string,
-        condition: data.get('condition') as any,
-        category: data.get('category') as any,
-      }
-      
-      await updateItem(editingItem.id, updateData)
-      setEditingItem(null)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleDeleteItem = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
-      await deleteItem(id)
-    }
-  }
-
-  const handleDuplicateItem = async (id: string) => {
-    await duplicateItem(id)
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <LoadingSpinner size="lg" />
-      </div>
-    )
-  }
+  const stats = [
+    {
+      name: 'Artikel insgesamt',
+      value: userItems.length,
+      icon: ShoppingBagIcon,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-100',
+    },
+    {
+      name: 'Verfügbare Artikel',
+      value: availableItems.length,
+      icon: ChartBarIcon,
+      color: 'text-green-600',
+      bgColor: 'bg-green-100',
+    },
+    {
+      name: 'Verkaufte Artikel',
+      value: soldItems.length,
+      icon: TrophyIcon,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-100',
+    },
+    {
+      name: 'Gesamtwert',
+      value: formatPrice(totalValue),
+      icon: CurrencyDollarIcon,
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-100',
+    },
+  ]
 
   return (
     <div className="space-y-8">
@@ -108,151 +68,102 @@ const Dashboard: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="text-center"
       >
-        <h1 className="text-4xl font-bold gradient-text mb-4">
-          Welcome back, {user?.name}! ✨
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          Willkommen zurück, {user?.name}! 👋
         </h1>
-        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-          Manage your items, track sales, and grow your business with our beautiful platform.
+        <p className="text-xl text-gray-600 mb-8">
+          Verwalten Sie Ihre Kinderkleidung und erzielen Sie tolle Verkäufe
         </p>
+        <Link to="/items/new">
+          <Button size="lg" className="shadow-xl">
+            <PlusIcon className="h-5 w-5 mr-2" />
+            Neuen Artikel hinzufügen
+          </Button>
+        </Link>
       </motion.div>
 
-      {/* Stats Cards */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card glass className="p-6">
-          <div className="flex items-center">
-            <div className="p-3 rounded-xl bg-primary-100 text-primary-600">
-              <ShoppingBagIcon className="h-6 w-6" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-slate-600">Total Items</p>
-              <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card glass className="p-6">
-          <div className="flex items-center">
-            <div className="p-3 rounded-xl bg-success-100 text-success-600">
-              <ChartBarIcon className="h-6 w-6" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-slate-600">Available</p>
-              <p className="text-2xl font-bold text-slate-900">{stats.available}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card glass className="p-6">
-          <div className="flex items-center">
-            <div className="p-3 rounded-xl bg-warning-100 text-warning-600">
-              <TagIcon className="h-6 w-6" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-slate-600">Sold Items</p>
-              <p className="text-2xl font-bold text-slate-900">{stats.sold}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card glass className="p-6">
-          <div className="flex items-center">
-            <div className="p-3 rounded-xl bg-secondary-100 text-secondary-600">
-              <CurrencyDollarIcon className="h-6 w-6" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-slate-600">Total Value</p>
-              <p className="text-2xl font-bold text-slate-900">{formatCurrency(stats.totalValue)}</p>
-            </div>
-          </div>
-        </Card>
+        {stats.map((stat, index) => (
+          <motion.div
+            key={stat.name}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+          >
+            <Card className="p-6">
+              <div className="flex items-center">
+                <div className={`p-3 rounded-xl ${stat.bgColor}`}>
+                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">{stat.name}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        ))}
       </div>
 
-      {/* Action Buttons */}
-      <Card glass className="p-6">
-        <div className="flex flex-wrap gap-4 justify-center">
-          <Button onClick={() => setIsCreateModalOpen(true)}>
-            <PlusIcon className="h-5 w-5 mr-2" />
-            Add New Item
-          </Button>
-          
-          <Button variant="secondary" onClick={() => downloadList('all')}>
-            <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
-            Download All Items
-          </Button>
-          
-          <Button variant="secondary" onClick={() => downloadList('sold')}>
-            <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
-            Download Sold Items
-          </Button>
-          
-          <Button variant="secondary" onClick={() => downloadLabels()}>
-            <TagIcon className="h-5 w-5 mr-2" />
-            Download Labels
-          </Button>
+      {/* Recent Items */}
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Ihre neuesten Artikel</h2>
+          <Link to="/items">
+            <Button variant="outline">Alle anzeigen</Button>
+          </Link>
+        </div>
+
+        {userItems.length === 0 ? (
+          <Card className="p-12 text-center">
+            <ShoppingBagIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Noch keine Artikel
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Fügen Sie Ihren ersten Artikel hinzu und beginnen Sie mit dem Verkauf!
+            </p>
+            <Link to="/items/new">
+              <Button>
+                <PlusIcon className="h-5 w-5 mr-2" />
+                Ersten Artikel hinzufügen
+              </Button>
+            </Link>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {userItems.slice(0, 8).map((item) => (
+              <ItemCard key={item.id} item={item} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Quick Actions */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Schnellaktionen</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link to="/items/new">
+            <Button variant="outline" className="w-full justify-start">
+              <PlusIcon className="h-5 w-5 mr-2" />
+              Artikel hinzufügen
+            </Button>
+          </Link>
+          <Link to="/items">
+            <Button variant="outline" className="w-full justify-start">
+              <ShoppingBagIcon className="h-5 w-5 mr-2" />
+              Artikel verwalten
+            </Button>
+          </Link>
+          <Link to="/profile">
+            <Button variant="outline" className="w-full justify-start">
+              <CurrencyDollarIcon className="h-5 w-5 mr-2" />
+              Verkaufsstatistiken
+            </Button>
+          </Link>
         </div>
       </Card>
-
-      {/* Items Grid */}
-      {items.length === 0 ? (
-        <Card className="p-12 text-center">
-          <ShoppingBagIcon className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-slate-900 mb-2">No items yet</h3>
-          <p className="text-slate-600 mb-6">Start by adding your first item to the exchange.</p>
-          <Button onClick={() => setIsCreateModalOpen(true)}>
-            <PlusIcon className="h-5 w-5 mr-2" />
-            Add Your First Item
-          </Button>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {items.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <ItemCard
-                item={item}
-                onEdit={setEditingItem}
-                onDelete={handleDeleteItem}
-                onDuplicate={handleDuplicateItem}
-              />
-            </motion.div>
-          ))}
-        </div>
-      )}
-
-      {/* Create Item Modal */}
-      <Modal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        size="lg"
-      >
-        <ItemForm
-          onSubmit={handleCreateItem}
-          onCancel={() => setIsCreateModalOpen(false)}
-          isLoading={isSubmitting}
-        />
-      </Modal>
-
-      {/* Edit Item Modal */}
-      <Modal
-        isOpen={!!editingItem}
-        onClose={() => setEditingItem(null)}
-        size="lg"
-      >
-        {editingItem && (
-          <ItemForm
-            item={editingItem}
-            onSubmit={handleUpdateItem}
-            onCancel={() => setEditingItem(null)}
-            isLoading={isSubmitting}
-          />
-        )}
-      </Modal>
     </div>
   )
 }
-
-export default Dashboard

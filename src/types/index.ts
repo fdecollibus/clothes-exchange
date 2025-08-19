@@ -7,31 +7,38 @@ export interface User {
   city?: string
   iban?: string
   isAdmin?: boolean
-  role?: 'admin' | 'staff' | 'user'
+  role?: 'admin' | 'seller' | 'customer'
   createdAt: string
-  updatedAt: string
 }
 
 export interface Item {
   id: string
-  itemNumber: string
+  sellerId: string
+  itemNumber: number
   title: string
   description: string
   price: number
   size: string
-  condition: ItemCondition
-  category: ItemCategory
-  status: ItemStatus
+  condition: 'new' | 'very_good' | 'good' | 'acceptable'
+  category: 'clothing' | 'shoes' | 'toys' | 'accessories'
+  status: 'available' | 'sold' | 'reserved'
   imageUrl?: string
-  sellerId: string
-  seller?: User
   createdAt: string
   updatedAt: string
 }
 
-export type ItemCondition = 'new' | 'very_good' | 'good' | 'acceptable'
-export type ItemCategory = 'clothing' | 'shoes' | 'toys' | 'accessories'
-export type ItemStatus = 'available' | 'sold' | 'reserved'
+export interface Seller {
+  id: string
+  name: string
+  sellerNumber: string
+  email: string
+  street?: string
+  city?: string
+  iban?: string
+  itemCount: number
+  totalValue: number
+  items: Item[]
+}
 
 export interface CartItem extends Item {
   quantity: number
@@ -45,16 +52,5 @@ export interface Sale {
   receiptUrl?: string
 }
 
-export interface ApiResponse<T> {
-  data: T
-  message?: string
-  success: boolean
-}
-
-export interface PaginatedResponse<T> {
-  data: T[]
-  total: number
-  page: number
-  limit: number
-  totalPages: number
-}
+export type ViewMode = 'grid' | 'list'
+export type SortOption = 'newest' | 'oldest' | 'price-low' | 'price-high' | 'name'

@@ -1,124 +1,240 @@
 import { create } from 'zustand'
-import { itemsApi } from '../lib/api'
-import type { Item, PaginatedResponse } from '../types'
-import toast from 'react-hot-toast'
+import type { Item, Seller, CartItem, Sale, SortOption } from '../types'
+import { generateId } from '../lib/utils'
 
 interface ItemsState {
   items: Item[]
-  total: number
-  page: number
-  totalPages: number
+  sellers: Seller[]
+  cart: CartItem[]
+  sales: Sale[]
   isLoading: boolean
-  loadItems: (params?: { page?: number; status?: string }) => Promise<void>
-  createItem: (data: FormData) => Promise<void>
-  updateItem: (id: string, data: Partial<Item>) => Promise<void>
+  searchQuery: string
+  selectedCategory: string
+  sortBy: SortOption
+  
+  // Actions
+  fetchItems: () => Promise<void>
+  fetchSellers: () => Promise<void>
+  addItem: (item: Omit<Item, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>
+  updateItem: (id: string, updates: Partial<Item>) => Promise<void>
   deleteItem: (id: string) => Promise<void>
-  duplicateItem: (id: string) => Promise<void>
-  downloadList: (type: 'all' | 'sold' | 'unsold') => Promise<void>
-  downloadLabels: () => Promise<void>
+  addToCart: (item: Item) => void
+  removeFromCart: (itemId: string) => void
+  clearCart: () => void
+  processCheckout: () => Promise<Sale>
+  setSearchQuery: (query: string) => void
+  setSelectedCategory: (category: string) => void
+  setSortBy: (sort: SortOption) => void
 }
 
+// Mock data
+const mockItems: Item[] = [
+  {
+    id: '1',
+    sellerId: '2',
+    itemNumber: 1,
+    title: 'Rosa Sommerkleid',
+    description: 'Wunderschönes rosa Sommerkleid für Mädchen, kaum getragen',
+    price: 15.50,
+    size: '98',
+    condition: 'very_good',
+    category: 'clothing',
+    status: 'available',
+    imageUrl: 'https://images.pexels.com/photos/1620760/pexels-photo-1620760.jpeg?auto=compress&cs=tinysrgb&w=400',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    sellerId: '2',
+    itemNumber: 2,
+    title: 'Blaue Jeans',
+    description: 'Robuste Jeans für Jungen, perfekt für den Alltag',
+    price: 12.00,
+    size: '104',
+    condition: 'good',
+    category: 'clothing',
+    status: 'available',
+    imageUrl: 'https://images.pexels.com/photos/1598507/pexels-photo-1598507.jpeg?auto=compress&cs=tinysrgb&w=400',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '3',
+    sellerId: '2',
+    itemNumber: 3,
+    title: 'Rote Turnschuhe',
+    description: 'Sportliche Turnschuhe in leuchtendem Rot',
+    price: 20.00,
+    size: '28',
+    condition: 'very_good',
+    category: 'shoes',
+    status: 'available',
+    imageUrl: 'https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=400',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '4',
+    sellerId: '2',
+    itemNumber: 4,
+    title: 'Holzpuzzle',
+    description: 'Pädagogisches Holzpuzzle für Kleinkinder',
+    price: 8.50,
+    size: 'One Size',
+    condition: 'good',
+    category: 'toys',
+    status: 'sold',
+    imageUrl: 'https://images.pexels.com/photos/1148998/pexels-photo-1148998.jpeg?auto=compress&cs=tinysrgb&w=400',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+]
+
 export const useItemsStore = create<ItemsState>((set, get) => ({
-  items: [],
-  total: 0,
-  page: 1,
-  totalPages: 1,
+  items: mockItems,
+  sellers: [],
+  cart: [],
+  sales: [],
   isLoading: false,
+  searchQuery: '',
+  selectedCategory: '',
+  sortBy: 'newest',
 
-  loadItems: async (params = {}) => {
+  fetchItems: async () => {
     set({ isLoading: true })
-    try {
-      const response = await itemsApi.getMyItems(params)
-      const { data, total, page, totalPages } = response.data.data
-      set({ items: data, total, page, totalPages, isLoading: false })
-    } catch (error: any) {
-      set({ isLoading: false })
-      toast.error(error.response?.data?.message || 'Failed to load items')
-    }
+    await new Promise(resolve => setTimeout(resolve, 500))
+    set({ isLoading: false })
   },
 
-  createItem: async (data: FormData) => {
-    try {
-      const response = await itemsApi.createItem(data)
-      const newItem = response.data.data
-      set((state) => ({ items: [newItem, ...state.items] }))
-      toast.success('Item created successfully!')
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to create item')
-      throw error
-    }
+  fetchSellers: async () => {
+    set({ isLoading: true })
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    const { items } = get()
+    const sellersMap = new Map<string, Seller>()
+    
+    items.forEach(item => {
+      if (!sellersMap.has(item.sellerId)) {
+        sellersMap.set(item.sellerId, {
+          id: item.sellerId,
+          name: 'Maria Müller',
+          sellerNumber: 'S001',
+          email: 'maria@example.com',
+          street: 'Bahnhofstrasse 123',
+          city: '8001 Zürich',
+          iban: 'CH93 0076 2011 6238 5295 7',
+          itemCount: 0,
+          totalValue: 0,
+          items: [],
+        })
+      }
+      
+      const seller = sellersMap.get(item.sellerId)!
+      seller.items.push(item)
+      seller.itemCount++
+      seller.totalValue += item.price
+    })
+    
+    set({ sellers: Array.from(sellersMap.values()), isLoading: false })
   },
 
-  updateItem: async (id: string, data: Partial<Item>) => {
-    try {
-      const response = await itemsApi.updateItem(id, data)
-      const updatedItem = response.data.data
-      set((state) => ({
-        items: state.items.map((item) => (item.id === id ? updatedItem : item))
-      }))
-      toast.success('Item updated successfully!')
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to update item')
-      throw error
+  addItem: async (itemData) => {
+    set({ isLoading: true })
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    const newItem: Item = {
+      ...itemData,
+      id: generateId(),
+      itemNumber: get().items.length + 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
+    
+    set(state => ({
+      items: [...state.items, newItem],
+      isLoading: false,
+    }))
   },
 
-  deleteItem: async (id: string) => {
-    try {
-      await itemsApi.deleteItem(id)
-      set((state) => ({
-        items: state.items.filter((item) => item.id !== id)
-      }))
-      toast.success('Item deleted successfully!')
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to delete item')
-      throw error
-    }
+  updateItem: async (id, updates) => {
+    set({ isLoading: true })
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    set(state => ({
+      items: state.items.map(item =>
+        item.id === id
+          ? { ...item, ...updates, updatedAt: new Date().toISOString() }
+          : item
+      ),
+      isLoading: false,
+    }))
   },
 
-  duplicateItem: async (id: string) => {
-    try {
-      const response = await itemsApi.duplicateItem(id)
-      const duplicatedItem = response.data.data
-      set((state) => ({ items: [duplicatedItem, ...state.items] }))
-      toast.success('Item duplicated successfully!')
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to duplicate item')
-      throw error
-    }
+  deleteItem: async (id) => {
+    set({ isLoading: true })
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    set(state => ({
+      items: state.items.filter(item => item.id !== id),
+      isLoading: false,
+    }))
   },
 
-  downloadList: async (type: 'all' | 'sold' | 'unsold') => {
-    try {
-      const response = await itemsApi.downloadList(type)
-      const url = window.URL.createObjectURL(new Blob([response.data]))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `items-${type}.pdf`)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(url)
-      toast.success('Download started!')
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to download list')
-    }
+  addToCart: (item) => {
+    set(state => {
+      const existingItem = state.cart.find(cartItem => cartItem.id === item.id)
+      if (existingItem) {
+        return {
+          cart: state.cart.map(cartItem =>
+            cartItem.id === item.id
+              ? { ...cartItem, quantity: cartItem.quantity + 1 }
+              : cartItem
+          ),
+        }
+      }
+      return {
+        cart: [...state.cart, { ...item, quantity: 1 }],
+      }
+    })
   },
 
-  downloadLabels: async () => {
-    try {
-      const response = await itemsApi.downloadLabels()
-      const url = window.URL.createObjectURL(new Blob([response.data]))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', 'labels.pdf')
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(url)
-      toast.success('Labels download started!')
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to download labels')
-    }
+  removeFromCart: (itemId) => {
+    set(state => ({
+      cart: state.cart.filter(item => item.id !== itemId),
+    }))
   },
+
+  clearCart: () => {
+    set({ cart: [] })
+  },
+
+  processCheckout: async () => {
+    const { cart } = get()
+    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    
+    const sale: Sale = {
+      id: generateId(),
+      items: cart.map(({ quantity, ...item }) => item),
+      total,
+      createdAt: new Date().toISOString(),
+    }
+    
+    // Mark items as sold
+    set(state => ({
+      items: state.items.map(item =>
+        cart.some(cartItem => cartItem.id === item.id)
+          ? { ...item, status: 'sold' as const }
+          : item
+      ),
+      sales: [...state.sales, sale],
+      cart: [],
+    }))
+    
+    return sale
+  },
+
+  setSearchQuery: (query) => set({ searchQuery: query }),
+  setSelectedCategory: (category) => set({ selectedCategory: category }),
+  setSortBy: (sort) => set({ sortBy: sort }),
 }))

@@ -1,153 +1,136 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { 
-  PencilIcon, 
-  TrashIcon, 
-  DocumentDuplicateIcon,
+  HeartIcon, 
+  ShoppingCartIcon, 
+  EyeIcon,
   TagIcon,
-  CurrencyDollarIcon
+  CalendarIcon 
 } from '@heroicons/react/24/outline'
+import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid'
 import type { Item } from '../../types'
-import { formatCurrency } from '../../lib/utils'
-import Card from '../ui/Card'
-import Button from '../ui/Button'
+import { formatPrice, formatDate } from '../../lib/utils'
+import { Card } from '../ui/Card'
+import { Button } from '../ui/Button'
+import { useItemsStore } from '../../stores/itemsStore'
 
 interface ItemCardProps {
   item: Item
-  onEdit: (item: Item) => void
-  onDelete: (id: string) => void
-  onDuplicate: (id: string) => void
+  onView?: (item: Item) => void
 }
 
-const ItemCard: React.FC<ItemCardProps> = ({ item, onEdit, onDelete, onDuplicate }) => {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'available':
-        return 'bg-success-100 text-success-800 border-success-200'
-      case 'sold':
-        return 'bg-slate-100 text-slate-800 border-slate-200'
-      case 'reserved':
-        return 'bg-warning-100 text-warning-800 border-warning-200'
-      default:
-        return 'bg-slate-100 text-slate-800 border-slate-200'
-    }
+export function ItemCard({ item, onView }: ItemCardProps) {
+  const { addToCart } = useItemsStore()
+  const [isFavorite, setIsFavorite] = React.useState(false)
+
+  const conditionColors = {
+    new: 'bg-green-100 text-green-800',
+    very_good: 'bg-blue-100 text-blue-800',
+    good: 'bg-yellow-100 text-yellow-800',
+    acceptable: 'bg-gray-100 text-gray-800',
   }
 
-  const getConditionLabel = (condition: string) => {
-    const labels = {
-      new: 'New',
-      very_good: 'Very Good',
-      good: 'Good',
-      acceptable: 'Acceptable'
-    }
-    return labels[condition as keyof typeof labels] || condition
+  const conditionLabels = {
+    new: 'Neu',
+    very_good: 'Sehr gut',
+    good: 'Gut',
+    acceptable: 'Akzeptabel',
   }
 
-  const getCategoryLabel = (category: string) => {
-    const labels = {
-      clothing: 'Clothing',
-      shoes: 'Shoes',
-      toys: 'Toys',
-      accessories: 'Accessories'
-    }
-    return labels[category as keyof typeof labels] || category
+  const categoryLabels = {
+    clothing: 'Kleidung',
+    shoes: 'Schuhe',
+    toys: 'Spielzeug',
+    accessories: 'Accessoires',
   }
 
   return (
-    <Card hover className="overflow-hidden">
+    <Card hover className="group">
       <div className="relative">
-        {item.imageUrl ? (
+        <div className="aspect-square overflow-hidden">
           <img
-            src={item.imageUrl}
+            src={item.imageUrl || 'https://images.pexels.com/photos/1620760/pexels-photo-1620760.jpeg?auto=compress&cs=tinysrgb&w=400'}
             alt={item.title}
-            className="h-48 w-full object-cover"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
-        ) : (
-          <div className="h-48 w-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-            <TagIcon className="h-12 w-12 text-slate-400" />
+        </div>
+        
+        <div className="absolute top-3 right-3 flex space-x-2">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setIsFavorite(!isFavorite)}
+            className="p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-lg"
+          >
+            {isFavorite ? (
+              <HeartSolidIcon className="h-5 w-5 text-red-500" />
+            ) : (
+              <HeartIcon className="h-5 w-5 text-gray-600" />
+            )}
+          </motion.button>
+        </div>
+
+        <div className="absolute top-3 left-3">
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${conditionColors[item.condition]}`}>
+            {conditionLabels[item.condition]}
+          </span>
+        </div>
+
+        {item.status === 'sold' && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <span className="bg-red-500 text-white px-4 py-2 rounded-full font-medium">
+              Verkauft
+            </span>
           </div>
         )}
-        
-        <div className="absolute top-3 right-3">
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(item.status)}`}>
-            {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-          </span>
-        </div>
-        
-        <div className="absolute top-3 left-3">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/90 text-slate-700 border border-white/20 backdrop-blur-sm">
-            #{item.itemNumber}
-          </span>
-        </div>
       </div>
 
-      <div className="p-6">
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-slate-900 mb-2">{item.title}</h3>
-          <p className="text-sm text-slate-600 line-clamp-2">{item.description}</p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-          <div>
-            <span className="text-slate-500">Category:</span>
-            <p className="font-medium text-slate-900">{getCategoryLabel(item.category)}</p>
-          </div>
-          <div>
-            <span className="text-slate-500">Size:</span>
-            <p className="font-medium text-slate-900">{item.size}</p>
-          </div>
-          <div>
-            <span className="text-slate-500">Condition:</span>
-            <p className="font-medium text-slate-900">{getConditionLabel(item.condition)}</p>
-          </div>
-          <div>
-            <span className="text-slate-500">Price:</span>
-            <p className="font-semibold text-primary-600 flex items-center">
-              <CurrencyDollarIcon className="h-4 w-4 mr-1" />
-              {formatCurrency(item.price)}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-          <div className="flex space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit(item)}
-              disabled={item.status === 'sold'}
-              className="p-2"
-            >
-              <PencilIcon className="h-4 w-4" />
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDuplicate(item.id)}
-              className="p-2"
-            >
-              <DocumentDuplicateIcon className="h-4 w-4" />
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDelete(item.id)}
-              disabled={item.status === 'sold'}
-              className="p-2 text-error-600 hover:text-error-700 hover:bg-error-50"
-            >
-              <TrashIcon className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <span className="text-xs text-slate-500">
-            {new Date(item.createdAt).toLocaleDateString()}
+      <div className="p-4">
+        <div className="flex items-start justify-between mb-2">
+          <h3 className="font-semibold text-gray-900 line-clamp-2">{item.title}</h3>
+          <span className="text-lg font-bold text-primary-600 ml-2">
+            {formatPrice(item.price)}
           </span>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{item.description}</p>
+
+        <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+          <div className="flex items-center space-x-3">
+            <span className="flex items-center">
+              <TagIcon className="h-3 w-3 mr-1" />
+              {categoryLabels[item.category]}
+            </span>
+            <span>Größe {item.size}</span>
+          </div>
+          <span className="flex items-center">
+            <CalendarIcon className="h-3 w-3 mr-1" />
+            {formatDate(item.createdAt)}
+          </span>
+        </div>
+
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onView?.(item)}
+            className="flex-1"
+          >
+            <EyeIcon className="h-4 w-4 mr-1" />
+            Details
+          </Button>
+          {item.status === 'available' && (
+            <Button
+              size="sm"
+              onClick={() => addToCart(item)}
+              className="flex-1"
+            >
+              <ShoppingCartIcon className="h-4 w-4 mr-1" />
+              In den Warenkorb
+            </Button>
+          )}
         </div>
       </div>
     </Card>
   )
 }
-
-export default ItemCard
